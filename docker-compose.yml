@@ -1,0 +1,62 @@
+services:
+  mysql-db:
+    image: mysql:5.7
+    container_name: mydb
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpressdb
+      MYSQL_USER: wpadmin
+      MYSQL_PASSWORD: wp1234
+    networks:
+      - backend-net
+
+  wordpress:
+    image: wordpress:latest
+    container_name: mywp
+    restart: always
+    depends_on:
+      - mysql-db
+    ports:
+      - "8000:80"
+    volumes:
+      # --- เพิ่ม Volume สำหรับเก็บไฟล์เว็บ WordPress ---
+      - wp_data:/var/var/www/html
+    environment:
+      # แก้ไขเป็น mysql-db ให้ตรงกับชื่อ service ด้านบน
+      WORDPRESS_DB_HOST: mysql-db:3306
+      WORDPRESS_DB_USER: wpadmin
+      WORDPRESS_DB_PASSWORD: wp1234
+      WORDPRESS_DB_NAME: wordpressdb
+    networks:
+      - frontend-net
+      - backend-net
+
+  # --- เพิ่ม Service phpMyAdmin สำหรับจัดการฐานข้อมูลผ่านเว็บ ---
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: mypma
+    restart: always
+    depends_on:
+      - mysql-db
+    ports:
+      - "8081:80" # เข้าผ่าน localhost:8081
+    environment:
+      PMA_HOST: mysql-db
+      MYSQL_ROOT_PASSWORD: somewordpress
+    networks:
+      - frontend-net
+      - backend-net
+
+# --- ส่วนที่ 3: ประกาศทรัพยากรส่วนกลาง (Top-level) ---
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+
+volumes:
+  db_data:    # เก็บข้อมูล MySQL
+  wp_data:    # เก็บไฟล์ WordPress (Themes, Plugins, Uploads) 
